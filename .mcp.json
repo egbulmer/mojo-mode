@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "paredit": {
+      "command": "paredit",
+      "args": ["mcp"]
+    }
+  }
+}
