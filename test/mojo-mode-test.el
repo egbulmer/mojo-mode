@@ -82,7 +82,27 @@
 
   (it "indents one level inside a split signature"
     (expect (mojo-mode-test--indent "def build(\nself,\nvalue: Int):\npass\n")
-            :to-equal "def build(\n    self,\n    value: Int):\n    pass\n")))
+            :to-equal "def build(\n    self,\n    value: Int):\n    pass\n"))
+
+  (it "reports noindent when the line is already indented"
+    (with-temp-buffer
+      (mojo-mode)
+      (insert "def greet():\n    print(\"hi\")")
+      (goto-char (point-max))
+      (expect (mojo-indent-line-function) :to-be 'noindent)))
+
+  (it "lets the first tab fall through to completion"
+    (with-temp-buffer
+      (mojo-mode)
+      (setq-local tab-always-indent 'complete)
+      (let (completed)
+        (add-hook 'completion-at-point-functions
+                  (lambda () (setq completed t) nil)
+                  nil t)
+        (insert "def greet():\n    print(\"hi\")")
+        (goto-char (point-max))
+        (indent-for-tab-command)
+        (expect completed :to-be t)))))
 
 (describe "font-lock"
   (it "highlights current declaration keywords"

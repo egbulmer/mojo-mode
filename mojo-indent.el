@@ -581,19 +581,22 @@ minimum."
 Use the PREVIOUS level when argument is non-nil, otherwise indent
 to the maximum available level.  When indentation is the minimum
 possible and PREVIOUS is non-nil, cycle back to the maximum
-level."
+level.  Return `noindent' when the indentation does not change, so
+`indent-for-tab-command' can fall through to completion."
   (let ((follow-indentation-p
          ;; Check if point is within indentation.
          (and (<= (line-beginning-position) (point))
               (>= (+ (line-beginning-position)
                      (current-indentation))
-                  (point)))))
-    (save-excursion
-      (indent-line-to
-       (mojo-indent-calculate-indentation previous))
-      (mojo-info-dedenter-opening-block-message))
-    (when follow-indentation-p
-      (back-to-indentation))))
+                  (point))))
+        (indentation (mojo-indent-calculate-indentation previous)))
+    (if (= (current-indentation) indentation)
+        'noindent
+      (save-excursion
+        (indent-line-to indentation)
+        (mojo-info-dedenter-opening-block-message))
+      (when follow-indentation-p
+        (back-to-indentation)))))
 
 (defun mojo-indent-calculate-levels ()
   "Return possible indentation levels."
