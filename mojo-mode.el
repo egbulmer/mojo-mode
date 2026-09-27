@@ -212,6 +212,8 @@ Honors `mojo-lsp-server-command'."
 
 (defvar mojo-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "DEL") #'mojo-indent-dedent-line-backspace)
+    (define-key map (kbd "<backtab>") #'mojo-indent-dedent-line)
     map)
   "Keymap for `mojo-mode'.
 Command bindings are added as run, build, and format support lands.")

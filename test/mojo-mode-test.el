@@ -102,7 +102,17 @@
         (insert "def greet():\n    print(\"hi\")")
         (goto-char (point-max))
         (indent-for-tab-command)
-        (expect completed :to-be t)))))
+        (expect completed :to-be t))))
+
+  (it "dedents one level on backspace"
+    (with-temp-buffer
+      (mojo-mode)
+      (insert "def greet():\n    print(\"hi\")")
+      (goto-char (point-max))
+      (beginning-of-line)
+      (skip-chars-forward " ")
+      (mojo-indent-dedent-line-backspace 1)
+      (expect (buffer-string) :to-equal "def greet():\nprint(\"hi\")"))))
 
 (describe "font-lock"
   (it "highlights current declaration keywords"
