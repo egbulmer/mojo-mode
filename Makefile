@@ -8,7 +8,7 @@ test:
 
 compile:
 	$(BATCH) --eval "(setq byte-compile-error-on-warn t)" \
-		-f batch-byte-compile mojo-mode.el
+		-f batch-byte-compile mojo-indent.el mojo-mode.el
 
 clean:
 	rm -rf .cask *.elc
@@ -19,4 +19,4 @@ install:
 # Byte-compile check that does not require Cask.
 lint:
 	$(BATCH) --eval "(setq byte-compile-error-on-warn t)" \
-		-f batch-byte-compile mojo-mode.el
+		-f batch-byte-compile mojo-indent.el mojo-mode.el

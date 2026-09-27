@@ -35,6 +35,14 @@
                          (mojo-mode-test--faces source))
              ""))
 
+(defun mojo-mode-test--indent (source)
+  "Insert SOURCE, indent the whole buffer, and return its text."
+  (with-temp-buffer
+    (mojo-mode)
+    (insert source)
+    (indent-region (point-min) (point-max))
+    (buffer-string)))
+
 (describe "mojo-mode"
   (it "is derived from prog-mode"
     (expect (provided-mode-derived-p 'mojo-mode 'prog-mode)))
@@ -51,10 +59,30 @@
       (mojo-mode)
       (expect indent-tabs-mode :to-be nil)
       (expect mojo-indent-offset :to-be 4)
+      (expect indent-line-function :to-be #'mojo-indent-line-function)
       (expect comment-start :to-equal "# ")))
 
   (it "registers the Mojo language server with eglot"
     (expect (assoc 'mojo-mode eglot-server-programs) :to-be-truthy)))
+
+(describe "indentation"
+  (it "indents the body of a struct"
+    (expect (mojo-mode-test--indent "struct Point:\nvar x: Int\n")
+            :to-equal "struct Point:\n    var x: Int\n"))
+
+  (it "indents the body of a function"
+    (expect (mojo-mode-test--indent "def greet():\nprint(\"hi\")\n")
+            :to-equal "def greet():\n    print(\"hi\")\n"))
+
+  (it "dedents an else clause"
+    (expect (mojo-mode-test--indent
+             "def greet(ready: Bool):\nif ready:\nprint(\"hi\")\nelse:\nprint(\"bye\")\n")
+            :to-equal
+            "def greet(ready: Bool):\n    if ready:\n        print(\"hi\")\n    else:\n        print(\"bye\")\n"))
+
+  (it "indents one level inside a split signature"
+    (expect (mojo-mode-test--indent "def build(\nself,\nvalue: Int):\npass\n")
+            :to-equal "def build(\n    self,\n    value: Int):\n    pass\n")))
 
 (describe "font-lock"
   (it "highlights current declaration keywords"

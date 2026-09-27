@@ -8,34 +8,29 @@
 ;; Package-Requires: ((emacs "30.1"))
 ;; Keywords: languages, mojo
 ;; URL: https://github.com/mojo-mode/mojo-mode
-;; SPDX-License-Identifier: MIT
+;; SPDX-License-Identifier: GPL-3.0-or-later
 
-;; Permission is hereby granted, free of charge, to any person obtaining a
-;; copy of this software and associated documentation files (the "Software"),
-;; to deal in the Software without restriction, including without limitation
-;; the rights to use, copy, modify, merge, publish, distribute, sublicense,
-;; and/or sell copies of the Software, and to permit persons to whom the
-;; Software is furnished to do so, subject to the following conditions:
+;; This file is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
 
-;; The above copyright notice and this permission notice shall be included in
-;; all copies or substantial portions of the Software.
+;; This file is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
 
-;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-;; SOFTWARE.
+;; You should have received a copy of the GNU General Public License
+;; along with this file.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
 ;; Major mode for editing Mojo source.
 ;;
-;; This is the initial scaffold: file association, syntax table,
-;; font-lock, imenu, and an Eglot registration for `mojo-lsp-server'.
-;; Indentation is a fixed offset.  A Mojo-aware indent engine, REPL,
-;; and compile/format commands are intentionally not implemented yet.
+;; Provides file association, a syntax table, font-lock, imenu, an
+;; Eglot registration for `mojo-lsp-server', and block indentation.
+;; The indenter lives in `mojo-indent.el'.  A REPL and compile or
+;; format commands are not implemented yet.
 ;;
 ;; Keyword lists follow the Mojo 1.1 language reference
 ;; <https://mojolang.org/docs/reference/keywords/>.  Removed spellings
@@ -44,18 +39,13 @@
 ;;; Code:
 
 (require 'eglot)
+(require 'mojo-indent)
 
 (defgroup mojo nil
   "Major mode for the Mojo programming language."
   :group 'languages
   :prefix "mojo-"
   :link '(url-link "https://mojolang.org/docs/"))
-
-(defcustom mojo-indent-offset 4
-  "Number of columns to indent each nested Mojo block."
-  :type 'integer
-  :safe #'integerp
-  :group 'mojo)
 
 (defcustom mojo-lsp-server-command '("mojo-lsp-server")
   "Command and arguments used to start the Mojo language server.
@@ -154,8 +144,9 @@ library.  User types are highlighted by the declaration matchers.")
      (1 font-lock-preprocessor-face)
      (2 font-lock-preprocessor-face))
 
-    ;; def / lambda name.
-    ("\\_<def\\_>\\s-+\\(\\(?:\\sw\\|\\s_\\)+\\)"
+    ;; def name.  The name is only highlighted when a parameter list
+    ;; follows, so `mut self` inside the list is not taken for one.
+    ("\\_<def\\_>\\s-+\\(\\(?:\\sw\\|\\s_\\)+\\)\\s-*[\\[(]"
      (1 font-lock-function-name-face))
 
     ;; struct / trait name.
@@ -174,8 +165,8 @@ library.  User types are highlighted by the declaration matchers.")
 
     ;; Argument conventions.  Matched only when they introduce a name,
     ;; so a local variable called `out` is left alone.
-    (,(concat (regexp-opt mojo-argument-conventions 'symbols)
-              "\\s-+\\(?:\\sw\\|\\s_\\)+\\s-*:")
+    (,(concat "\\(" (regexp-opt mojo-argument-conventions 'symbols) "\\)"
+              "\\s-+\\(?:\\sw\\|\\s_\\)+\\_>")
      (1 font-lock-keyword-face))
 
     ;; Literals and `Self`.
@@ -206,23 +197,6 @@ library.  User types are highlighted by the declaration matchers.")
     ("Comptime" "^\\s-*comptime\\s-+\\(\\(?:\\sw\\|\\s_\\)+\\)" 1))
   "Imenu index for top-level Mojo declarations.")
 
-;;;; Indent
-
-(defun mojo-indent-line ()
-  "Indent the current line by a multiple of `mojo-indent-offset'.
-
-This is a placeholder.  It preserves a line's current indent level
-rounded down to a multiple of `mojo-indent-offset', and does not yet
-understand Mojo block structure."
-  (interactive)
-  (let ((offset (max 1 mojo-indent-offset)))
-    (if (bobp)
-        (indent-line-to 0)
-      (let* ((indent-pos (progn (back-to-indentation) (point)))
-             (current (- indent-pos (line-beginning-position)))
-             (rounded (* offset (/ current offset))))
-        (indent-line-to rounded)))))
-
 ;;;; Eglot
 
 (defun mojo-eglot-contact (_interactive)
@@ -250,9 +224,12 @@ Command bindings are added as run, build, and format support lands.")
   :syntax-table mojo-mode-syntax-table
   :group 'mojo
   (setq-local font-lock-defaults '(mojo-font-lock-keywords nil nil nil))
-  (setq-local indent-line-function #'mojo-indent-line)
+  (setq-local indent-line-function #'mojo-indent-line-function)
+  (setq-local indent-region-function #'mojo-indent-region)
   (setq-local indent-tabs-mode nil)
   (setq-local tab-width mojo-indent-offset)
+  (add-hook 'post-self-insert-hook
+            #'mojo-indent-post-self-insert-function nil 'local)
   (setq-local comment-start "# ")
   (setq-local comment-start-skip "#+[ \t]*")
   (setq-local comment-end "")
