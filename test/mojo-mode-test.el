@@ -112,7 +112,20 @@
       (beginning-of-line)
       (skip-chars-forward " ")
       (mojo-indent-dedent-line-backspace 1)
-      (expect (buffer-string) :to-equal "def greet():\nprint(\"hi\")"))))
+      (expect (buffer-string) :to-equal "def greet():\nprint(\"hi\")")))
+
+  (it "does not reindent a finished line when opening a new one"
+    (with-temp-buffer
+      (mojo-mode)
+      (electric-indent-mode 1)
+      (insert "    def print_grid(self):\n        var grid_str = \"\"\n        for index in range(len(self.cells)):\n            grid_str += \"X\" if self.cells[index] else \".\"\n            if (index % Self.num_cols == (Self.num_cols - 1) and index != len(self.cells) - 1):\n                grid_str += \"\\n\"\n        print(grid_str)")
+      (goto-char (point-max))
+      (let ((this-command 'newline))
+        (newline nil t))
+      (goto-char (point-min))
+      (search-forward "print(grid_str)")
+      (expect (current-indentation) :to-be 8)))
+)
 
 (describe "font-lock"
   (it "highlights current declaration keywords"

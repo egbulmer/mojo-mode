@@ -238,6 +238,10 @@ Command bindings are added as run, build, and format support lands.")
   (setq-local comment-use-syntax t)
   (setq-local parse-sexp-ignore-comments t)
   (setq-local imenu-generic-expression mojo-imenu-generic-expression)
+  ;; Indentation is significant, so typing must not reindent a
+  ;; finished line.  `mojo-indent-post-self-insert-function' still
+  ;; handles the cases where it should, such as a colon.
+  (setq-local electric-indent-inhibit t)
   (setq-local electric-indent-chars (append '(?:) electric-indent-chars)))
 
 ;;;###autoload
